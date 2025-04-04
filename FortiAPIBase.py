@@ -1,7 +1,7 @@
 import requests
 import json
 import getpass
-
+import FortiSSH
 #####################################################
 ##
 ##
@@ -21,14 +21,18 @@ import getpass
 ####################################################
 
 
+
 # Variable for the tech password
 passwd = getpass.getpass('Please enter the password: ')
 
 # Define the FortiGate API IP and credentials
 fortigate_ip = "192.168.1.99"  # Replace with your FortiGate's IP address
 # Still need to log into the FortiGate device to setup the API token. Will fix this in next version.
+# Use FortiSSH to retrieve the API key
+api_key_output = FortiSSH.get_api_key(fortigate_ip, "admin", passwd)
+
 # Will be working on a proper way to store and access the API tokens for use later on as well. 
-api_token = "<api_Token>"  # Replace with your API token
+api_token = api_key_output  # Use the retrieved API token
 
 # Dictionary that defines the VLAN configurations (multiple VLANs)
 vlans = [
