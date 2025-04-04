@@ -27,6 +27,8 @@ passwd = getpass.getpass('Please enter the password: ')
 
 # Define the FortiGate API IP and credentials
 fortigate_ip = "192.168.1.99"  # Replace with your FortiGate's IP address
+
+
 # Still need to log into the FortiGate device to setup the API token. Will fix this in next version.
 # Use FortiSSH to retrieve the API key
 api_key_output = FortiSSH.get_api_key(fortigate_ip, "admin", passwd)
@@ -42,8 +44,10 @@ vlans = [
         "vlanid": 10,
         "interface": "fortilink",
         "ip": "<gateway of vlan>", # Example 192.168.1.1 255.255.255.0
-       # "dhcp-relay-service": "enable",  # Enable DHCP relay ## Will remove these in next version. Left over from testing.
-       # "dhcp-relay-ip": "<ip address of dhcp server>"  # IP address of the DHCP server ## Will remove these in next version. Left over from testing.
+       # Comment out the lines below if you are using DHCP relay
+        "dhcp_range": ("Start of pool", "End of Pool"),
+        "default_gateway": "192.168.100.1",
+        "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
     {
         "name": "VLAN99",
@@ -51,8 +55,10 @@ vlans = [
         "vlanid": 99,
         "interface": "fortilink",
         "ip": "gateway of vlan", # Example 192.168.1.1 255.255.255.0
-        # "dhcp-relay-service": "enable",  # Enable DHCP relay ## Will remove these in next version. Left over from testing.
-        # "dhcp-relay-ip": "<ip address of dhcp server>"  # IP address of the DHCP server ## Will remove these in next version. Left over from testing.
+       # Comment out the lines below if you are using DHCP relay
+        "dhcp_range": ("Start of pool", "End of Pool"),
+        "default_gateway": "192.168.100.1",
+        "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
 ]
 
@@ -74,12 +80,13 @@ for vlan in vlans:
             "vlanid": vlan["vlanid"],
             "interface": vlan["interface"],
             "ip": vlan["ip"],
-            "dhcp-relay-service": "enable",  # Enable DHCP relay service
-            "dhcp-relay-ip": "<dhcp server ip address>",  # DHCP server IP
-            "dhcp-relay-type": "regular",  # Type of relay
-            "dhcp-relay-agent-option": "enable",  # Enable DHCP relay agent option
-            "dhcp-relay-interface": "",
-            "dhcp-relay-interface-select-method": "auto"  # Method for selecting the relay interface   
+        # Uncomment the following lines if you want to enable DHCP relay for each VLAN
+           # "dhcp-relay-service": "enable",  # Enable DHCP relay service
+           # "dhcp-relay-ip": "<dhcp server ip address>",  # DHCP server IP
+           # "dhcp-relay-type": "regular",  # Type of relay
+           # "dhcp-relay-agent-option": "enable",  # Enable DHCP relay agent option
+           # "dhcp-relay-interface": "",
+           # "dhcp-relay-interface-select-method": "auto"  # Method for selecting the relay interface   
             
         }
     }
@@ -94,6 +101,34 @@ for vlan in vlans:
     else:
         print(f"Failed to create VLAN {vlan['name']}. Status code: {response.status_code}")
         print(f"Response: {response.text}")
+
+
+# DHCP Server configuration for VLANs, VLANs need to be created first before configuring DHCP server.
+# Uncomment the following lines if you want to configure DHCP relay for each VLAN
+dhcp_info = {
+    "interface": f"vlan{vlan['vlanid']}",
+    "lease_time": 86400,  # Lease time in seconds (1 day)
+    "netmask": "255.255.255.0:",
+    "range": [
+       {
+        "start": vlan["dhcp_range"][0],
+        "end": vlan["dhcp_range"][1] 
+        }   
+    ],
+    "status": "enable",
+    "default-gateway": vlan["default_gateway"],
+    "dns-server": vlan["dns_servers"],
+}
+
+dhcp_url = f"https://{fortigate_ip}/api/v2/cmdb/system.dhcp/server"
+dhcp_response = requests.post(dhcp_url, headers=headers, data=json.dumps(dhcp_info), verify=False)
+
+if dhcp_response.status_code == 200:
+    print(f"DHCP server for VLAN{vlan['vlanid']} configured successfully!") 
+else:
+    print(f"Failed to configure DHCP server for VLAN{vlan['vlanid']}. Status code: {dhcp_response.status_code}")
+    print(f"Response: {dhcp_response.text}")
+
 
 #############################################
 # 
