@@ -6,27 +6,13 @@ FortiGate = {
     "device_type": "fortinet",
     "host": "192.168.1.99", # Replace with your device IP
     "username": "admin", # Replace with your username
-    "password": "", # Password is empty on default FortiGate devices
+    "password": getpass(), # Password is empty on default FortiGate devices
     }
 
 # Connect to the device
 Connection = ConnectHandler(**FortiGate)
-if Connection:
-    print("Connected to the device successfully!")
-else:
-    print("Failed to connect to the device.") # Print connection status
+print("Connected to the device successfully!")
 
-# The FortiGate will prompt for a password, so we need to provide it
-password = getpass(prompt='Enter the password: ')
-confirm_password = getpass(prompt='Confirm the password: ')
-if password != confirm_password:
-    print("Passwords do not match. Exiting...")
-    exit(1)
-
-# Prompt for the password and confirm it
-Connection.send_command(password)
-Connection.send_command(confirm_password)
-print("Password set successfully!")
 
 # Create API user
 api_user = input("Enter the API user name: ")
