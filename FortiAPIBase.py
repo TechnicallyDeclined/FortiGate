@@ -30,7 +30,7 @@ api_username_to_create = input("Enter the API username to create: ")
 fortigate_ip = "192.168.1.99"  # Replace with your FortiGate's IP address
 username = "admin"  # Replace with your FortiGate username
 
-api_key = get_fortigate_api_key(fortigate_ip, username, passwd, api_username)
+api_key = get_fortigate_api_key(fortigate_ip, username, passwd, api_username_to_create)
 
 if api_key:
     print(f"Successfully retrieved API Key: {api_key}")

@@ -2,7 +2,7 @@ from netmiko import ConnectHandler
 from getpass import getpass
 
 
-def get_fortigate_api_key(host, username, passwd, api_username):
+def get_fortigate_api_key(host, username, passwd, api_user_to_create):
     """
     Connects to a FortiGate device, creates an API user, and retrieves the API key.
 
@@ -31,7 +31,7 @@ def get_fortigate_api_key(host, username, passwd, api_username):
         # Create API user
         api_commands = [
             "config system api-user",
-            "edit {api_username}",
+            f"edit {api_user_to_create}",
             "set accprofile super_admin",
             "set vdom root",
             "end",
@@ -40,17 +40,22 @@ def get_fortigate_api_key(host, username, passwd, api_username):
         print(output)
 
         # Generate and display the API key
-        create_api_key_command = f"execute api-user generate-key {api_username}"
+        create_api_key_command = f"execute api-user generate-key {api_user_to_create}"
         api_key_output = Connection.send_command(create_api_key_command)
-        print(api_key_output)
+        print(f"Raw API Key Output:\n{api_key_output}")  # Debugging - Print the entire output
 
         # Extract the API key
+        api_key_value = None
         for line in api_key_output.splitlines():
-            if "New API Key:" in line:
-                api_key_value = line.split("New API Key:")[1].strip()
+            print(f"Processing line: '{line}'")  # Debugging - Print each line
+            if "New API key:" in line:
+                api_key_value = line.split("New API key:")[1].strip()
+                print(f"Found API Key: '{api_key_value}'")  # Debugging - Print the extracted key
                 break
 
         return api_key_value
+
+    
 
     except Exception as e:
         print(f"An error occurred in get_fortigate_api_key: {type(e)}, {e}")
