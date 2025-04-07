@@ -1,7 +1,7 @@
 import requests
 import json
 import getpass
-import FortiSSH
+from fortinet_api_module import get_fortigate_api_key
 #####################################################
 ##
 ##
@@ -27,12 +27,16 @@ passwd = getpass.getpass('Please enter the password: ')
 
 # Define the FortiGate API IP and credentials
 fortigate_ip = "192.168.1.99"  # Replace with your FortiGate's IP address
-# Still need to log into the FortiGate device to setup the API token. Will fix this in next version.
-# Use FortiSSH to retrieve the API key
-api_key_output = FortiSSH.get_api_key(fortigate_ip, "admin", passwd)
+username = "admin"  # Replace with your FortiGate username
+api_username = input()  # Replace with your FortiGate API username
 
-# Will be working on a proper way to store and access the API tokens for use later on as well. 
-api_token = api_key_output  # Use the retrieved API token
+api_key = get_fortigate_api_key(fortigate_ip, username, passwd, api_username)
+
+if api_key:
+    print(f"Successfully retrieved API Key: {api_key}")
+    # Now you can use the 'api_key' variable for your API calls
+else:
+    print("Failed to retrieve the API key.")
 
 # Dictionary that defines the VLAN configurations (multiple VLANs)
 vlans = [
@@ -41,9 +45,11 @@ vlans = [
         "alias": "Data",
         "vlanid": 10,
         "interface": "fortilink",
-        "ip": "<gateway of vlan>", # Example 192.168.1.1 255.255.255.0
-       # "dhcp-relay-service": "enable",  # Enable DHCP relay ## Will remove these in next version. Left over from testing.
-       # "dhcp-relay-ip": "<ip address of dhcp server>"  # IP address of the DHCP server ## Will remove these in next version. Left over from testing.
+        "ip": "10.35.13.1 255.255.255.0", # Example 192.168.1.1 255.255.255.0
+       # Comment out the lines below if you are using DHCP relay
+        "dhcp_range": ("10.35.13.100", "10.35.13.200"),
+        "default_gateway": "10.35.13.1",
+        "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
     {
         "name": "VLAN99",
@@ -51,20 +57,20 @@ vlans = [
         "vlanid": 99,
         "interface": "fortilink",
         "ip": "gateway of vlan", # Example 192.168.1.1 255.255.255.0
-        # "dhcp-relay-service": "enable",  # Enable DHCP relay ## Will remove these in next version. Left over from testing.
-        # "dhcp-relay-ip": "<ip address of dhcp server>"  # IP address of the DHCP server ## Will remove these in next version. Left over from testing.
+       # Comment out the lines below if you are using DHCP relay
+        "dhcp_range": ("Start of pool", "End of Pool"),
+        "default_gateway": "192.168.100.1",
+        "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
 ]
 
 # Set the headers for the request
 headers = {
-    "Authorization": f"Bearer {api_token}",
+    "Authorization": f"Bearer {api_key}",
     "Content-Type": "application/json"
 }
 
 # Loop through each VLAN configuration and send a POST request ## Comment out the dhcp-relay-service and dhcp-relay-ip in the vlans dictionary to remove them from the configuration.
-# Add DHCP Server configuration here if needed.
-# Will be added in the next version.
 for vlan in vlans:
     vlan_data = {
         "json": {
@@ -74,12 +80,13 @@ for vlan in vlans:
             "vlanid": vlan["vlanid"],
             "interface": vlan["interface"],
             "ip": vlan["ip"],
-            "dhcp-relay-service": "enable",  # Enable DHCP relay service
-            "dhcp-relay-ip": "<dhcp server ip address>",  # DHCP server IP
-            "dhcp-relay-type": "regular",  # Type of relay
-            "dhcp-relay-agent-option": "enable",  # Enable DHCP relay agent option
-            "dhcp-relay-interface": "",
-            "dhcp-relay-interface-select-method": "auto"  # Method for selecting the relay interface   
+        # Uncomment the following lines if you want to enable DHCP relay for each VLAN
+           # "dhcp-relay-service": "enable",  # Enable DHCP relay service
+           # "dhcp-relay-ip": "<dhcp server ip address>",  # DHCP server IP
+           # "dhcp-relay-type": "regular",  # Type of relay
+           # "dhcp-relay-agent-option": "enable",  # Enable DHCP relay agent option
+           # "dhcp-relay-interface": "",
+           # "dhcp-relay-interface-select-method": "auto"  # Method for selecting the relay interface   
             
         }
     }
@@ -95,6 +102,34 @@ for vlan in vlans:
         print(f"Failed to create VLAN {vlan['name']}. Status code: {response.status_code}")
         print(f"Response: {response.text}")
 
+
+# DHCP Server configuration for VLANs, VLANs need to be created first before configuring DHCP server.
+# Uncomment the following lines if you want to configure DHCP relay for each VLAN
+dhcp_info = {
+    "interface": f"vlan{vlan['vlanid']}",
+    "lease_time": 86400,  # Lease time in seconds (1 day)
+    "netmask": "255.255.255.0:",
+    "range": [
+       {
+        "start": vlan["dhcp_range"][0],
+        "end": vlan["dhcp_range"][1] 
+        }   
+    ],
+    "status": "enable",
+    "default-gateway": vlan["default_gateway"],
+    "dns-server": vlan["dns_servers"],
+}
+
+dhcp_url = f"https://{fortigate_ip}/api/v2/cmdb/system.dhcp/server"
+dhcp_response = requests.post(dhcp_url, headers=headers, data=json.dumps(dhcp_info), verify=False)
+
+if dhcp_response.status_code == 200:
+    print(f"DHCP server for VLAN{vlan['vlanid']} configured successfully!") 
+else:
+    print(f"Failed to configure DHCP server for VLAN{vlan['vlanid']}. Status code: {dhcp_response.status_code}")
+    print(f"Response: {dhcp_response.text}")
+
+
 #############################################
 # 
 # Would like to add the configuration of SD-WAN here as well. 
@@ -105,8 +140,8 @@ wan1_data = {
     "json": {
         "vdom": "root",
         "name": "wan1",
-        "mode": "dhcp",  # Static/dhcp
-        #"ip": "192.168.1.1 255.255.255.0",  # uncomment and configure ip address 0.0.0.0 0.0.0.0
+        "mode": "static",  # Static/dhcp
+        "ip": "66.171.17.248 255.255.255.0",  # uncomment and configure ip address 0.0.0.0 0.0.0.0
         "allowaccess": "ping https ssh http"  # Allow certain management access
     }
 }
@@ -126,27 +161,27 @@ else:
 
 
 # Configuration for static route if no DHCP uncomment if needed.
-#static_route_data = {
- #   "json": {
-  #      "vdom": "root",
-   #     "dst": "0.0.0.0/0",  # Default route (all traffic)
-    #    "gateway": "0.0.0.0",  # Gateway IP address for WAN1
-     #   "device": "wan1",  # Use WAN1 interface
-      #  "distance": 10,  # Routing distance, lower is higher priority
-       # "status": "enable"  # Enable the static route
-    #}
-#}
+static_route_data = {
+    "json": {
+        "vdom": "root",
+        "dst": "0.0.0.0/0",  # Default route (all traffic)
+        "gateway": "66.171.17.1",  # Gateway IP address for WAN1
+        "device": "wan1",  # Use WAN1 interface
+        "distance": 10,  # Routing distance, lower is higher priority
+        "status": "enable"  # Enable the static route
+    }
+}
 
 # Send the POST request to configure the static route
-#url = f"https://{fortigate_ip}/api/v2/cmdb/router/static"
-#response = requests.post(url, headers=headers, data=json.dumps(static_route_data), verify=False)
+url = f"https://{fortigate_ip}/api/v2/cmdb/router/static"
+response = requests.post(url, headers=headers, data=json.dumps(static_route_data), verify=False)
 
 # Check the response for adding the static route
-#if response.status_code == 200:
- #   print("Static route configured successfully!")
-#else:
- #   print(f"Failed to configure static route. Status code: {response.status_code}")
- #   print(f"Response: {response.text}")
+if response.status_code == 200:
+   print("Static route configured successfully!")
+else:
+    print(f"Failed to configure static route. Status code: {response.status_code}")
+    print(f"Response: {response.text}")
 
 ####################################################################################################
 
