@@ -2,7 +2,7 @@ from netmiko import ConnectHandler
 from getpass import getpass
 
 
-def get_fortigate_api_key(host, username, password, api_username):
+def get_fortigate_api_key(host, username, passwd, api_username):
     """
     Connects to a FortiGate device, creates an API user, and retrieves the API key.
 
@@ -15,6 +15,7 @@ def get_fortigate_api_key(host, username, password, api_username):
     Returns:
         str: The API key if successful, None otherwise.
     """
+
     Connection = None
     api_key_value = None
     try:
@@ -22,7 +23,7 @@ def get_fortigate_api_key(host, username, password, api_username):
             "device_type": "fortinet",
             "host": host,
             "username": username,
-            "password": password,
+            "password": passwd,
         }
         Connection = ConnectHandler(**device)
         print(f"Connected to {host} successfully!")
@@ -30,7 +31,7 @@ def get_fortigate_api_key(host, username, password, api_username):
         # Create API user
         api_commands = [
             "config system api-user",
-            f"edit {api_username}",
+            "edit {api_username}",
             "set accprofile super_admin",
             "set vdom root",
             "end",
@@ -45,8 +46,8 @@ def get_fortigate_api_key(host, username, password, api_username):
 
         # Extract the API key
         for line in api_key_output.splitlines():
-            if "API Key:" in line:
-                api_key_value = line.split("API Key:")[1].strip()
+            if "New API Key:" in line:
+                api_key_value = line.split("New API Key:")[1].strip()
                 break
 
         return api_key_value
@@ -61,10 +62,10 @@ def get_fortigate_api_key(host, username, password, api_username):
 if __name__ == "__main__":
     fortigate_ip = input("Enter the FortiGate IP address: ")
     username = input("Enter the FortiGate username: ")
-    password = getpass("Enter the FortiGate password: ")
+    passwd = getpass("Enter the FortiGate password: ")
     api_user_to_create = input("Enter the API username to create: ")
 
-    api_key = get_fortigate_api_key(fortigate_ip, username, password, api_user_to_create)
+    api_key = get_fortigate_api_key(fortigate_ip, username, passwd, api_user_to_create)
 
     if api_key:
         print(f"\nGenerated API Key for user '{api_user_to_create}': {api_key}")

@@ -24,11 +24,11 @@ from fortinet_api_module import get_fortigate_api_key
 
 # Variable for the tech password
 passwd = getpass.getpass('Please enter the password: ')
+api_username_to_create = input("Enter the API username to create: ")
 
 # Define the FortiGate API IP and credentials
 fortigate_ip = "192.168.1.99"  # Replace with your FortiGate's IP address
 username = "admin"  # Replace with your FortiGate username
-api_username = input()  # Replace with your FortiGate API username
 
 api_key = get_fortigate_api_key(fortigate_ip, username, passwd, api_username)
 
