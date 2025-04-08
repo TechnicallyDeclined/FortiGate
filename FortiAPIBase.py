@@ -2,6 +2,7 @@ import requests
 import json
 import getpass
 from fortinet_api_module import get_fortigate_api_key
+import time
 #####################################################
 ##
 ##
@@ -102,6 +103,7 @@ for vlan in vlans:
         print(f"Failed to create VLAN {vlan['name']}. Status code: {response.status_code}")
         print(f"Response: {response.text}")
 
+time.sleep(2)
 
 # DHCP Server configuration for VLANs, VLANs need to be created first before configuring DHCP server.
 # Uncomment the following lines if you want to configure DHCP relay for each VLAN
