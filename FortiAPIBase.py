@@ -46,10 +46,10 @@ vlans = [
         "alias": "Data",
         "vlanid": 10,
         "interface": "fortilink",
-        "ip": "10.35.13.1 255.255.255.0", # Example 192.168.1.1 255.255.255.0
+        "ip": "0.0.0.0 0.0.0.0", # Example 192.168.1.1 255.255.255.0
        # Comment out the lines below if you are using DHCP relay
-        "dhcp_range": ("10.35.13.100", "10.35.13.200"),
-        "default_gateway": "10.35.13.1",
+        "dhcp_range": ("0.0.0.0", "0.0.0.0"),
+        "default_gateway": "0.0.0.0",
         "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
     {
@@ -57,14 +57,18 @@ vlans = [
         "alias": "Management",
         "vlanid": 99,
         "interface": "fortilink",
-        "ip": "gateway of vlan", # Example 192.168.1.1 255.255.255.0
+        "ip": "gateway", # Example 192.168.1.1 255.255.255.0
        # Comment out the lines below if you are using DHCP relay
         "dhcp_range": ("Start of pool", "End of Pool"),
-        "default_gateway": "192.168.100.1",
+        "default_gateway": "0.0.0.0",
         "dns_servers": ["8.8.8.8", "8.8.4.4"]
     },
 ]
 
+# Debugging: Print the API key being used
+print(f"Debug: Using API Key: {api_key}")
+
+# Fails to run without debugging: Print the API key being used?? Working for now.
 # Set the headers for the request
 headers = {
     "Authorization": f"Bearer {api_key}",
@@ -143,7 +147,7 @@ wan1_data = {
         "vdom": "root",
         "name": "wan1",
         "mode": "static",  # Static/dhcp
-        "ip": "66.171.17.248 255.255.255.0",  # uncomment and configure ip address 0.0.0.0 0.0.0.0
+        "ip": "0.0.0.0 0.0.0.0",  # uncomment and configure ip address 0.0.0.0 0.0.0.0
         "allowaccess": "ping https ssh http"  # Allow certain management access
     }
 }
@@ -167,7 +171,7 @@ static_route_data = {
     "json": {
         "vdom": "root",
         "dst": "0.0.0.0/0",  # Default route (all traffic)
-        "gateway": "66.171.17.1",  # Gateway IP address for WAN1
+        "gateway": "0.0.0.0",  # Gateway IP address for WAN1
         "device": "wan1",  # Use WAN1 interface
         "distance": 10,  # Routing distance, lower is higher priority
         "status": "enable"  # Enable the static route
