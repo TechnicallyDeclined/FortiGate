@@ -1,0 +1,59 @@
+# Configuration for FortiGate Automation
+
+fortigate_ip: "192.168.1.99"
+username: "admin"
+
+vlans:
+  - name: "VLAN10"
+    alias: "Data"
+    vlanid: 10
+    interface: "fortilink"
+    ip: "10.35.13.1 255.255.255.0"
+    dhcp_range:
+      - "10.35.13.100"
+      - "10.35.13.200"
+    default_gateway: "10.35.13.1"
+    dns_servers:
+      - "8.8.8.8"
+      - "8.8.4.4"
+    dhcp-relay-service: "enable"
+    dhcp-relay-ip: "192.168.2.10"
+    dhcp-relay-type: "regular"
+    dhcp-relay-agent-option: "enable"
+    dhcp-relay-interface: "fortilink"
+    dhcp-relay-interface-select-method: "auto"
+  - name: "VLAN99"
+    alias: "Management"
+    vlanid: 99
+    interface: "fortilink"
+    ip: "10.35.98.1 255.255.255.0"
+    dhcp_range:
+      - "Start of pool"
+      - "End of Pool"
+    default_gateway: "10.35.98.1"
+    dns_servers:
+      - "8.8.8.8"
+      - "8.8.4.4"
+
+wan1:
+  mode: "static"
+  ip: "0.0.0.0 255.255.255.0"
+  allowaccess: "ping https ssh http"
+
+static_route:
+  dst: "0.0.0.0/0"
+  gateway: "0.0.0.0"
+  device: "wan1"
+  distance: 10
+  status: "enable"
+
+zone_name: "Vlans"
+
+policy_name: "Outside_access"
+
+tech_user:
+  name: "tech"
+  trustedhosts:
+    - "0.0.0.0/32"
+    - "0.0.0.0/32"
+    - "0.0.0.0/32"
