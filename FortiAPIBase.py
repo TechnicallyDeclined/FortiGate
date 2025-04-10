@@ -3,6 +3,7 @@ import json
 import getpass
 from fortinet_api_module import get_fortigate_api_key
 import time
+from forti_vlans_module import create_vlan
 #####################################################
 ##
 ##
@@ -39,6 +40,16 @@ if api_key:
 else:
     print("Failed to retrieve the API key.")
 
+# Debugging: Print the API key being used
+print(f"Debug: Using API Key: {api_key}")
+
+# Fails to run without debugging: Print the API key being used?? Working for now.
+# Set the headers for the request
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json"
+}
+
 # Dictionary that defines the VLAN configurations (multiple VLANs)
 vlans = [
     {
@@ -65,16 +76,6 @@ vlans = [
     },
 ]
 
-# Debugging: Print the API key being used
-print(f"Debug: Using API Key: {api_key}")
-
-# Fails to run without debugging: Print the API key being used?? Working for now.
-# Set the headers for the request
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json"
-}
-
 # Loop through each VLAN configuration and send a POST request ## Comment out the dhcp-relay-service and dhcp-relay-ip in the vlans dictionary to remove them from the configuration.
 for vlan in vlans:
     vlan_data = {
@@ -96,18 +97,10 @@ for vlan in vlans:
         }
     }
 
-    # Send the POST request to create the VLAN
-    url = f"https://{fortigate_ip}/api/v2/cmdb/system/interface"
-    response = requests.post(url, headers=headers, data=json.dumps(vlan_data), verify=False)
-
-    # Check the response
-    if response.status_code == 200:
-        print(f"VLAN {vlan['name']} created successfully!")
-    else:
-        print(f"Failed to create VLAN {vlan['name']}. Status code: {response.status_code}")
-        print(f"Response: {response.text}")
-
-time.sleep(2)
+      # Configure VLANs
+    for vlan in vlans:
+        if create_vlan(fortigate_ip, headers, vlan):
+            time.sleep(2)
 
 # DHCP Server configuration for VLANs, VLANs need to be created first before configuring DHCP server.
 # Uncomment the following lines if you want to configure DHCP relay for each VLAN
